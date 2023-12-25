@@ -21,6 +21,10 @@ enum Opcode {
     Mul,
     Read,
     Write,
+    JumpIfTrue,
+    JumpIfFalse,
+    LessThan,
+    Equals,
     Halt,
 }
 
@@ -31,6 +35,10 @@ impl Opcode {
             2 => Opcode::Mul,
             3 => Opcode::Read,
             4 => Opcode::Write,
+            5 => Opcode::JumpIfTrue,
+            6 => Opcode::JumpIfFalse,
+            7 => Opcode::LessThan,
+            8 => Opcode::Equals,
             99 => Opcode::Halt,
             x => panic!("Unknown opcode {}", x),
         }
@@ -88,6 +96,10 @@ impl CPU {
         match opcode {
             Opcode::Add => self.opcode_add((pmode_1, pmode_2, pmode_3)),
             Opcode::Mul => self.opcode_mul((pmode_1, pmode_2, pmode_3)),
+            Opcode::JumpIfTrue => self.opcode_jump_if_true((pmode_1, pmode_2)),
+            Opcode::JumpIfFalse => self.opcode_jump_if_false((pmode_1, pmode_2)),
+            Opcode::LessThan => self.opcode_less_than((pmode_1, pmode_2, pmode_3)),
+            Opcode::Equals => self.opcode_equals((pmode_1, pmode_2, pmode_3)),
             Opcode::Read => self.opcode_read(pmode_1),
             Opcode::Write => self.opcode_write(pmode_1),
             Opcode::Halt => self.step_halt(),
@@ -110,6 +122,56 @@ impl CPU {
 
         let target_pos = self.get_operand_addr(self.ip + 3, pmode.2);
         self.memory[target_pos] = operand1 * operand2;
+
+        self.ip += 4;
+    }
+
+    fn opcode_jump_if_true(&mut self, pmode: (ParameterMode, ParameterMode)) {
+        let operand1 = self.memory[self.get_operand_addr(self.ip + 1, pmode.0)];
+        let operand2 = self.memory[self.get_operand_addr(self.ip + 2, pmode.1)];
+
+        if operand1 != 0 {
+            self.ip = operand2 as usize
+        } else {
+            self.ip += 3
+        }
+    }
+
+    fn opcode_jump_if_false(&mut self, pmode: (ParameterMode, ParameterMode)) {
+        let operand1 = self.memory[self.get_operand_addr(self.ip + 1, pmode.0)];
+        let operand2 = self.memory[self.get_operand_addr(self.ip + 2, pmode.1)];
+
+        if operand1 == 0 {
+            self.ip = operand2 as usize
+        } else {
+            self.ip += 3
+        }
+    }
+
+    fn opcode_less_than(&mut self, pmode: (ParameterMode, ParameterMode, ParameterMode)) {
+        let operand1 = self.memory[self.get_operand_addr(self.ip + 1, pmode.0)];
+        let operand2 = self.memory[self.get_operand_addr(self.ip + 2, pmode.1)];
+
+        let target_pos = self.get_operand_addr(self.ip + 3, pmode.2);
+        if operand1 < operand2 {
+            self.memory[target_pos] = 1;
+        } else {
+            self.memory[target_pos] = 0;
+        }
+
+        self.ip += 4;
+    }
+
+    fn opcode_equals(&mut self, pmode: (ParameterMode, ParameterMode, ParameterMode)) {
+        let operand1 = self.memory[self.get_operand_addr(self.ip + 1, pmode.0)];
+        let operand2 = self.memory[self.get_operand_addr(self.ip + 2, pmode.1)];
+
+        let target_pos = self.get_operand_addr(self.ip + 3, pmode.2);
+        if operand1 == operand2 {
+            self.memory[target_pos] = 1;
+        } else {
+            self.memory[target_pos] = 0;
+        }
 
         self.ip += 4;
     }
